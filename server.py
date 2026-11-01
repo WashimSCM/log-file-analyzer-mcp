@@ -2,7 +2,7 @@
 import os
 import httpx
 from mcp.server.fastmcp import FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
+app = mcp.streamable_http_app(     host="0.0.0.0" )
 
 API_BASE_URL = os.getenv(
     "LOG_ANALYZER_API_URL",
