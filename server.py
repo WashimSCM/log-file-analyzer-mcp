@@ -1,7 +1,7 @@
 import os
 import httpx
 
-from mcp.server.mcpserver import MCPServer
+from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
 
