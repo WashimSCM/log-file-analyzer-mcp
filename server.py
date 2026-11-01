@@ -1,14 +1,14 @@
-
 import os
 import httpx
 from mcp.server.fastmcp import FastMCP
-app = mcp.streamable_http_app(     host="0.0.0.0" )
 
+# REST API address
 API_BASE_URL = os.getenv(
     "LOG_ANALYZER_API_URL",
     "https://log-file-analyzer-actions.onrender.com"
 ).rstrip("/")
 
+# Create the MCP server
 mcp = FastMCP("Log File Analyzer")
 
 
@@ -19,9 +19,14 @@ async def analyze_googlebot_logs(
     verify_googlebot_dns: bool = False,
     top_n: int = 100
 ) -> dict:
-    """Analyze Apache/Nginx combined access logs and report Googlebot crawl hits grouped by HTTP referrer URL, with counts and percentages."""
+    """
+    Analyze Apache/Nginx combined access logs and report Googlebot
+    crawl hits grouped by HTTP referrer URL, with counts and percentages.
+    """
+
     if not log_content.strip():
         raise ValueError("log_content must not be empty")
+
     if not 1 <= top_n <= 1000:
         raise ValueError("top_n must be between 1 and 1000")
 
@@ -37,26 +42,26 @@ async def analyze_googlebot_logs(
             f"{API_BASE_URL}/analyze-logs",
             json=payload
         )
+
         response.raise_for_status()
         return response.json()
 
 
 @mcp.tool()
 async def check_log_analyzer_health() -> dict:
-    """Check whether the Log File Analyzer backend is available."""
+    """
+    Check whether the Log File Analyzer backend is available.
+    """
+
     async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.get(f"{API_BASE_URL}/health")
+        response = await client.get(
+            f"{API_BASE_URL}/health"
+        )
+
         response.raise_for_status()
         return response.json()
 
 
-security = TransportSecuritySettings(
-    allowed_hosts=[
-        "log-file-analyzer-mcp.onrender.com",
-        "log-file-analyzer-mcp.onrender.com:*"
-    ]
-)
-
-app = mcp.streamable_http_app(
-    transport_security=security
-)
+# Create the HTTP application.
+# This setting disables the SDK's Host-header protection.
+app = mcp.streamable_http_app(host="0.0.0.0")
