@@ -1,15 +1,18 @@
 import os
 import httpx
-from mcp.server.fastmcp import FastMCP
 
-# REST API address
+from mcp.server.mcpserver import MCPServer
+from mcp.server.transport_security import TransportSecuritySettings
+
+
 API_BASE_URL = os.getenv(
     "LOG_ANALYZER_API_URL",
     "https://log-file-analyzer-actions.onrender.com"
 ).rstrip("/")
 
-# Create the MCP server
-mcp = FastMCP("Log File Analyzer")
+
+# Create MCP server
+mcp = MCPServer("Log File Analyzer")
 
 
 @mcp.tool()
@@ -20,8 +23,9 @@ async def analyze_googlebot_logs(
     top_n: int = 100
 ) -> dict:
     """
-    Analyze Apache/Nginx combined access logs and report Googlebot
-    crawl hits grouped by HTTP referrer URL, with counts and percentages.
+    Analyze Apache/Nginx access logs and report Googlebot
+    crawl hits grouped by HTTP referrer URL, with counts
+    and percentages.
     """
 
     if not log_content.strip():
@@ -42,26 +46,32 @@ async def analyze_googlebot_logs(
             f"{API_BASE_URL}/analyze-logs",
             json=payload
         )
-
         response.raise_for_status()
         return response.json()
 
 
 @mcp.tool()
 async def check_log_analyzer_health() -> dict:
-    """
-    Check whether the Log File Analyzer backend is available.
-    """
+    """Check whether the Log File Analyzer backend is available."""
 
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.get(
             f"{API_BASE_URL}/health"
         )
-
         response.raise_for_status()
         return response.json()
 
 
-# Create the HTTP application.
-# This setting disables the SDK's Host-header protection.
-app = mcp.streamable_http_app(host="0.0.0.0")
+# Allow requests from the Render service hostname
+security = TransportSecuritySettings(
+    allowed_hosts=[
+        "log-file-analyzer-mcp.onrender.com",
+        "log-file-analyzer-mcp.onrender.com:*"
+    ]
+)
+
+
+# Create the MCP HTTP application
+app = mcp.streamable_http_app(
+    transport_security=security
+)
